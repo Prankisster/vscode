@@ -301,7 +301,18 @@
           </template>
         </fieldset>
 
-        <!-- <input class="button" type="button" value="Test Connection" data-on-click="this.testConnection(event)" /> -->
+        <input
+          class="button"
+          type="submit"
+          value="Test Connection"
+          data-on-click="this.testConnection(event)"
+        />
+        <template data-if="this.errorMessage()">
+          <div class="info error" data-text="this.errorMessage()"></div>
+        </template>
+        <template data-if="this.success() === true">
+          <div class="info success">Connection successful. You may now save this connection.</div>
+        </template>
         <input class="button" type="submit" value="Save" data-attr-disabled="this.success()" />
         <template data-if="this.errorMessage()">
           <div class="info error" data-text="this.errorMessage()"></div>
