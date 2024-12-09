@@ -63,6 +63,9 @@ class DirectConnectFormViewModel extends ViewModel {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
 
+    if (!data["bootstrap_servers"] && !data["uri"]) {
+      return this.errorMessage("Please provide either Kafka cluster or Schema Registry details");
+    }
     const result = await post("TestConnection", data);
     if (result.success) {
       console.log("success", result);
