@@ -300,13 +300,7 @@
             </div>
           </template>
         </fieldset>
-
-        <input
-          class="button"
-          type="submit"
-          value="Test Connection"
-          data-on-click="this.testConnection(event)"
-        />
+        <input class="button" type="submit" value="Test" />
         <template data-if="this.errorMessage()">
           <div class="info error" data-text="this.errorMessage()"></div>
         </template>
