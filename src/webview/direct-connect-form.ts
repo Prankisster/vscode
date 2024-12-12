@@ -65,17 +65,23 @@ class DirectConnectFormViewModel extends ViewModel {
     const form = event.target as HTMLFormElement;
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
+
     if (!data["bootstrap_servers"] && !data["uri"]) {
-      return this.errorMessage("Please provide either Kafka cluster or Schema Registry details");
+      this.errorMessage("Please provide either Kafka cluster or Schema Registry details");
+      return;
     }
+
     let clusterConfig: KafkaClusterConfig | undefined = undefined;
     let schemaConfig: SchemaRegistryConfig | undefined = undefined;
+
     if (data["bootstrap_servers"]) {
       clusterConfig = transformFormDataToKafkaConfig(data);
     }
+
     if (data["uri"]) {
       schemaConfig = transformFormDataToSchemaRegistryConfig(data);
     }
+
     const result = await post("Submit", {
       name: data.name,
       dry_run: dryRun,
@@ -83,7 +89,9 @@ class DirectConnectFormViewModel extends ViewModel {
       clusterConfig,
       schemaConfig,
     });
+
     this.success(result.success);
+
     if (!result.success) {
       this.errorMessage(result.message ?? "Unknown error occurred");
     }

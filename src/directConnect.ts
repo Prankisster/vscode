@@ -58,35 +58,35 @@ export function openDirectConnectionForm(): void {
           message: error.message || "An error occurred while testing the connection",
         };
       }
-    }
+    } else {
+      let kafkaConfig: KafkaClusterConfig | undefined = undefined;
+      if (body["clusterConfig"]) {
+        kafkaConfig = { ...body["clusterConfig"] };
+      }
 
-    let kafkaConfig: KafkaClusterConfig | undefined = undefined;
-    if (body["clusterConfig"]) {
-      kafkaConfig = { ...body["clusterConfig"] };
-    }
+      let schemaRegistryConfig: SchemaRegistryConfig | undefined = undefined;
+      if (body["schemaConfig"]) {
+        schemaRegistryConfig = { ...body["schemaConfig"] };
+      }
 
-    let schemaRegistryConfig: SchemaRegistryConfig | undefined = undefined;
-    if (body["schemaConfig"]) {
-      schemaRegistryConfig = { ...body["schemaConfig"] };
+      const manager = DirectConnectionManager.getInstance();
+      const result = await manager.createConnection(
+        kafkaConfig,
+        schemaRegistryConfig,
+        body["platform"],
+        dry_run,
+        body["name"],
+      );
+      let name = body["name"] || "the connection";
+      if (result.success) {
+        await window.showInformationMessage(`🎉 New Connection Created`, {
+          modal: true,
+          detail: `View and interact with ${name} in the Resources sidebar`,
+        });
+        directConnectForm.dispose();
+      }
+      return result;
     }
-
-    const manager = DirectConnectionManager.getInstance();
-    const result = await manager.createConnection(
-      kafkaConfig,
-      schemaRegistryConfig,
-      body["platform"],
-      dry_run,
-      body["name"],
-    );
-    let name = body["name"] || "the connection";
-    if (result.success) {
-      await window.showInformationMessage(`🎉 New Connection Created`, {
-        modal: true,
-        detail: `View and interact with ${name} in the Resources sidebar`,
-      });
-      directConnectForm.dispose();
-    }
-    return result;
   }
 
   const processMessage = async ([type, body]: Parameters<MessageSender>, dry_run: boolean) => {
