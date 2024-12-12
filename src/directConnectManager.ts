@@ -132,32 +132,22 @@ export class DirectConnectionManager {
     name?: string,
   ): Promise<PostResponse> {
     const connectionId = randomUUID() as ConnectionId;
-    const spec: CustomConnectionSpec = {
-      id: connectionId,
-      name: name || "New Connection",
-      type: ConnectionType.Direct, // TODO(shoup): update for MDS in follow-on branch
-      formConnectionType,
-    };
 
+    let spec: CustomConnectionSpec;
     if (dry_run) {
-      try {
-        const response = await fetch(spec.id);
-        if (response.status === 200) {
-          return { success: true, message: "Connection successful" };
-        } else {
-          return {
-            success: false,
-            message: `Connection failed with status code ${response.status}`,
-          };
-        }
-      } catch (error: any) {
-        return {
-          success: false,
-          message: error.message || "An error occurred while testing the connection",
-        };
-      }
+      spec = {
+        name: name || "New Connection",
+        type: ConnectionType.Direct, // TODO(shoup): update for MDS in follow-on branch
+        formConnectionType,
+      };
+    } else {
+      spec = {
+        id: connectionId,
+        name: name || "New Connection",
+        type: ConnectionType.Direct, // TODO(shoup): update for MDS in follow-on branch
+        formConnectionType,
+      };
     }
-
     if (kafkaClusterConfig) {
       spec.kafka_cluster = kafkaClusterConfig;
     }
@@ -165,7 +155,7 @@ export class DirectConnectionManager {
       spec.schema_registry = schemaRegistryConfig;
     }
 
-    const { connection, errorMessage } = await this.createOrUpdateConnection(spec);
+    const { connection, errorMessage } = await this.createOrUpdateConnection(spec, dry_run);
     if (errorMessage || !connection) {
       return { success: false, message: errorMessage };
     }
@@ -234,11 +224,14 @@ export class DirectConnectionManager {
   private async createOrUpdateConnection(
     spec: ConnectionSpec,
     update: boolean = false,
+    dry_run: boolean = false,
   ): Promise<{ connection: Connection | null; errorMessage: string | null }> {
     let connection: Connection | null = null;
     let errorMessage: string | null = null;
     try {
-      connection = update ? await tryToUpdateConnection(spec) : await tryToCreateConnection(spec);
+      connection = update
+        ? await tryToUpdateConnection(spec)
+        : await tryToCreateConnection(spec, dry_run);
       const connectionId = connection.spec.id as ConnectionId;
       await window.withProgress(
         {

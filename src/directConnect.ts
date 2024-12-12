@@ -38,55 +38,33 @@ export function openDirectConnectionForm(): void {
     // XXX: only enable for local debugging:
     // logger.debug("creating connection from form data:", body);
 
-    if (dry_run) {
-      try {
-        if (!body || !body.url) {
-          return { success: false, message: "Invalid connection details" };
-        }
-        const response = await fetch(body.url);
-        if (response.status === 200) {
-          return { success: true, message: "Connection successful" };
-        } else {
-          return {
-            success: false,
-            message: `Connection failed with status code ${response.status}`,
-          };
-        }
-      } catch (error: any) {
-        return {
-          success: false,
-          message: error.message || "An error occurred while testing the connection",
-        };
-      }
-    } else {
-      let kafkaConfig: KafkaClusterConfig | undefined = undefined;
-      if (body["clusterConfig"]) {
-        kafkaConfig = { ...body["clusterConfig"] };
-      }
-
-      let schemaRegistryConfig: SchemaRegistryConfig | undefined = undefined;
-      if (body["schemaConfig"]) {
-        schemaRegistryConfig = { ...body["schemaConfig"] };
-      }
-
-      const manager = DirectConnectionManager.getInstance();
-      const result = await manager.createConnection(
-        kafkaConfig,
-        schemaRegistryConfig,
-        body["platform"],
-        dry_run,
-        body["name"],
-      );
-      let name = body["name"] || "the connection";
-      if (result.success) {
-        await window.showInformationMessage(`🎉 New Connection Created`, {
-          modal: true,
-          detail: `View and interact with ${name} in the Resources sidebar`,
-        });
-        directConnectForm.dispose();
-      }
-      return result;
+    let kafkaConfig: KafkaClusterConfig | undefined = undefined;
+    if (body["clusterConfig"]) {
+      kafkaConfig = { ...body["clusterConfig"] };
     }
+
+    let schemaRegistryConfig: SchemaRegistryConfig | undefined = undefined;
+    if (body["schemaConfig"]) {
+      schemaRegistryConfig = { ...body["schemaConfig"] };
+    }
+
+    const manager = DirectConnectionManager.getInstance();
+    const result = await manager.createConnection(
+      kafkaConfig,
+      schemaRegistryConfig,
+      body["platform"],
+      dry_run,
+      body["name"],
+    );
+    let name = body["name"] || "the connection";
+    if (result.success && !dry_run) {
+      await window.showInformationMessage(`🎉 New Connection Created`, {
+        modal: true,
+        detail: `View and interact with ${name} in the Resources sidebar`,
+      });
+      directConnectForm.dispose();
+    }
+    return result;
   }
 
   const processMessage = async ([type, body]: Parameters<MessageSender>, dry_run: boolean) => {
