@@ -128,6 +128,7 @@ export class DirectConnectionManager {
     kafkaClusterConfig: KafkaClusterConfig | undefined,
     schemaRegistryConfig: SchemaRegistryConfig | undefined,
     formConnectionType: FormConnectionType,
+    dry_run: boolean,
     name?: string,
   ): Promise<PostResponse> {
     const connectionId = randomUUID() as ConnectionId;
@@ -137,6 +138,25 @@ export class DirectConnectionManager {
       type: ConnectionType.Direct, // TODO(shoup): update for MDS in follow-on branch
       formConnectionType,
     };
+
+    if (dry_run) {
+      try {
+        const response = await fetch(spec.id);
+        if (response.status === 200) {
+          return { success: true, message: "Connection successful" };
+        } else {
+          return {
+            success: false,
+            message: `Connection failed with status code ${response.status}`,
+          };
+        }
+      } catch (error: any) {
+        return {
+          success: false,
+          message: error.message || "An error occurred while testing the connection",
+        };
+      }
+    }
 
     if (kafkaClusterConfig) {
       spec.kafka_cluster = kafkaClusterConfig;
