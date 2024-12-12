@@ -55,23 +55,6 @@ class DirectConnectFormViewModel extends ViewModel {
     }
   }
 
-  async testConnection(event: Event) {
-    event.preventDefault();
-    this.success(false);
-    this.errorMessage("");
-    // const form = event.target as HTMLFormElement;
-    // const formData = new FormData(form);
-    // const data = Object.fromEntries(formData.entries());
-    // TODO not implemented yet
-    // const result = await post("TestConnection", data);
-    // if (result.success) {
-    //   console.log("success", result);
-    // } else {
-    //   this.errorMessage(result.message ?? "Unknown error occurred");
-    //   console.log("error", result);
-    // }
-  }
-
   /** Submit all form data to the extension */
   async handleSubmit(event: SubmitEvent) {
     event.preventDefault();
