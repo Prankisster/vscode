@@ -689,7 +689,7 @@ export function constructSidecarEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   sidecar_env["QUARKUS_LOG_FILE_PATH"] = getSidecarLogfilePath();
   sidecar_env["VSCODE_VERSION"] = vscode.version;
   sidecar_env["VSCODE_EXTENSION_VERSION"] = EXTENSION_VERSION;
-
+  sidecar_env["TIMEOUT"] = "10000"; // 10 seconds temp overrride
   // If we are running within WSL, then need to have sidecar bind to 0.0.0.0 instead of its default
   // localhost so that browsers running on Windows can connect to it during OAuth flow. The server
   // port will still be guarded by the firewall.
