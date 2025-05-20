@@ -37,12 +37,12 @@ class WebsocketMessageReader implements MessageReader {
     });
 
     this.socket.on("close", () => {
-      logger.debug("WebSocket connection closed");
+      logger.debug("WebSocket connection closed in MessageReader");
       this.closeEmitter.fire();
     });
 
     this.socket.on("error", (error) => {
-      logger.error(`WebSocket error: ${error}`);
+      logger.error(`WebSocket error in MessageReader: ${error}`);
       this.errorEmitter.fire(error);
     });
   }
@@ -73,10 +73,12 @@ class WebsocketMessageWriter implements MessageWriter {
   constructor(socket: WebSocket) {
     this.socket = socket;
     this.socket.on("close", () => {
+      logger.debug("WebSocket connection closed in MessageWriter");
       this.closeEmitter.fire();
     });
 
     this.socket.on("error", (error) => {
+      logger.error(`WebSocket error in MessageWriter: ${error}`);
       this.errorEmitter.fire([error, undefined, undefined]);
     });
   }
@@ -128,15 +130,41 @@ export class WebsocketTransport implements MessageTransports {
   public reader: MessageReader;
   public writer: MessageWriter;
   private socket: WebSocket;
+  private _isDisposed = false;
 
   constructor(socket: WebSocket) {
     this.socket = socket;
     this.reader = new WebsocketMessageReader(socket);
     this.writer = new WebsocketMessageWriter(socket);
+
+    // Listen for reader/writer close events
+    this.reader.onClose(() => {
+      logger.debug("Reader was closed, closing transport if not already disposed");
+      if (!this._isDisposed) {
+        this.dispose();
+      }
+    });
+
+    this.writer.onClose(() => {
+      logger.debug("Writer was closed, closing transport if not already disposed");
+      if (!this._isDisposed) {
+        this.dispose();
+      }
+    });
+  }
+
+  public get isDisposed(): boolean {
+    return this._isDisposed;
   }
 
   public dispose(): void {
+    if (this._isDisposed) {
+      return;
+    }
+
     logger.debug("Disposing websocket transport");
+    this._isDisposed = true;
+
     // Make sure we close the writer first to send any pending messages
     try {
       (this.writer as WebsocketMessageWriter).end();
@@ -148,16 +176,7 @@ export class WebsocketTransport implements MessageTransports {
     this.reader.dispose();
     this.writer.dispose();
 
-    // Finally, close the socket directly if it's still open
-    if (
-      this.socket.readyState === WebSocket.OPEN ||
-      this.socket.readyState === WebSocket.CONNECTING
-    ) {
-      try {
-        this.socket.close(1000, "Transport disposed");
-      } catch (err) {
-        logger.error(`Error closing WebSocket: ${err}`);
-      }
-    }
+    // Don't close the socket here, as the WebSocketServerManager will handle that
+    // This allows the manager to reuse the transport without interference
   }
 }
