@@ -205,8 +205,13 @@ class FlinkSqlMessageWriter implements MessageWriter {
       message &&
       typeof message === "object" &&
       "method" in message &&
-      typeof message.method === "string" &&
-      (message.method === "initialize" || message.method.startsWith("$/"));
+      typeof (message as any).method === "string" &&
+      ((message as any).method === "initialize" || (message as any).method.startsWith("$/"));
+
+    // If this is an initialization message, let the server manager handle it
+    if (isInitializationMessage && (message as any).method === "initialize") {
+      this.serverManager.handleInitializeMessage(message);
+    }
 
     // Check if this is a request message (has ID and method)
     const isRequest =
@@ -240,7 +245,7 @@ class FlinkSqlMessageWriter implements MessageWriter {
     }
 
     if (isInitializationMessage) {
-      logger.debug(`Handling initialization or protocol message: ${message.method}`);
+      logger.debug(`Handling initialization or protocol message: ${(message as any).method}`);
       // For initialization and protocol messages, always route to the default server
       try {
         await this.serverManager.sendToDefaultServer(message);
@@ -291,6 +296,23 @@ class FlinkSqlMessageWriter implements MessageWriter {
     }
 
     try {
+      // Get the server for this document and wait for metadata to be available
+      const server = await this.serverManager.getServerForDocument(activeDocument);
+      if (!server) {
+        // If no server is found, it might be because metadata isn't loaded yet
+        // Wait a short time and try again
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        const retryServer = await this.serverManager.getServerForDocument(activeDocument);
+        if (!retryServer) {
+          throw new Error(`No server available for document ${activeDocument.uri.toString()}`);
+        }
+        logger.debug(
+          `Sending ${isRequest ? "request" : "message"} ${requestMethod}${requestId ? ` (id: ${requestId})` : ""} for document ${activeDocument.uri.toString()} after retry`,
+        );
+        await this.serverManager.sendMessage(message, activeDocument);
+        return Promise.resolve();
+      }
+
       logger.debug(
         `Sending ${isRequest ? "request" : "message"} ${requestMethod}${requestId ? ` (id: ${requestId})` : ""} for document ${activeDocument.uri.toString()}`,
       );

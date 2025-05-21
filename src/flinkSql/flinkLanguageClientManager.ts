@@ -14,6 +14,7 @@ import {
 import { hasCCloudAuthSession } from "../sidecar/connections/ccloud";
 import { SIDECAR_PORT } from "../sidecar/constants";
 import { initializeLanguageClient } from "./languageClient";
+import { MultiWebSocketServerManager } from "./multiWebSocketServerManager";
 
 const logger = new Logger("flinkLanguageClientManager");
 
@@ -267,21 +268,23 @@ export class FlinkLanguageClientManager implements Disposable {
     }
 
     try {
-      let url: string | undefined;
-      if (this.lastWebSocketUrl && this.lastWebSocketUrl.includes(computePoolId)) {
-        url = this.lastWebSocketUrl;
-      } else {
-        url = await this.buildFlinkSqlWebSocketUrl(computePoolId).catch((error) => {
-          logger.error("Failed to build WebSocket URL:", error);
-          return undefined;
-        });
+      // Create a multi-websocket server manager
+      const serverManager = new MultiWebSocketServerManager();
+
+      // Build the default server URL
+      const defaultUrl = await this.buildFlinkSqlWebSocketUrl(computePoolId);
+      if (!defaultUrl) {
+        logger.error("Failed to build WebSocket URL for default server");
+        return;
       }
-      if (!url) return;
+
+      // Register the default server
+      serverManager.registerServer(null, defaultUrl, true);
 
       // Reset reconnect counter on new initialization
       this.reconnectCounter = 0;
 
-      this.languageClient = await initializeLanguageClient(url, () =>
+      this.languageClient = await initializeLanguageClient(serverManager, () =>
         this.handleWebSocketDisconnect(),
       );
       if (this.languageClient) {

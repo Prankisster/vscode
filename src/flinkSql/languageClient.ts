@@ -28,30 +28,17 @@ let enableExtraCompletionDebug = false;
  * - User has selected a compute pool
  */
 export async function initializeLanguageClient(
-  url: string,
+  serverManager: MultiWebSocketServerManager,
   onWebSocketDisconnect: () => void,
 ): Promise<LanguageClient | null> {
   try {
-    logger.info(`Initializing FlinkSQL language client with server URL: ${url}`);
+    logger.info("Initializing FlinkSQL language client");
 
-    // Create a multi-websocket server manager
-    const serverManager = new MultiWebSocketServerManager();
-
-    // Register the main server
     const documentSelector = [
       { language: "flinksql" },
       { scheme: "untitled", language: "flinksql" },
       { pattern: "**/*.flink.sql" },
     ];
-
-    // Register a server with a simple routing function
-    logger.debug("Registering default server");
-    serverManager.registerServer(
-      "default",
-      url,
-      () => true, // This will match all documents
-      true, // Set as default server
-    );
 
     // Create the server options provider
     logger.debug("Creating server options provider");
